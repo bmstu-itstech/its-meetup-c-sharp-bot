@@ -22,12 +22,20 @@ DATA_PASSPORT_NUMBER_KEY = "passport_number"
 DATA_UNIVERSITY_KEY = "university"
 DATA_WORKPLACE_KEY = "workplace"
 DATA_REGISTRATION_ID_KEY = "registration_id"
+DATA_MGTU_KEY = "is_mgtu"
+DATA_STUDY_GROUP_KEY = "study_group"
 
 
 @dp.message_handler(ChatTypeFilter(ChatType.PRIVATE), state="*", commands=["start"])
 async def send_start(message: Message, state: FSMContext, store: Storage):
     await state.finish()
-    if not await store.has_consent(message.chat.id):
+    has_consent = await store.has_consent(message.chat.id)
+    await message.answer(
+        texts.registration.intro_after_consent if has_consent else texts.registration.intro,
+        reply_markup=ReplyKeyboardRemove(),
+        parse_mode=ParseMode.HTML,
+    )
+    if not has_consent:
         await message.answer(
             texts.registration.consent_text,
             reply_markup=keyboards.yes_no_keyboard(),
@@ -42,7 +50,7 @@ async def send_start(message: Message, state: FSMContext, store: Storage):
             "\n".join([
                 texts.registration.already_registered_intro,
                 "",
-                texts.registration.review(existing.full_name, existing.passport_series, existing.passport_number, existing.university, existing.workplace),
+                texts.registration.review(existing.full_name, existing.passport_series, existing.passport_number, existing.university, existing.workplace, existing.study_group),
                 "",
                 texts.registration.edit_question
             ]),
@@ -51,11 +59,6 @@ async def send_start(message: Message, state: FSMContext, store: Storage):
         )
         await states.Registration.start.set()
     else:
-        await message.answer(
-            texts.registration.intro,
-            reply_markup=ReplyKeyboardRemove(),
-            parse_mode=ParseMode.HTML,
-        )
         await ask_full_name(message)
 
 
@@ -94,7 +97,56 @@ async def handle_full_name(message: Message, state: FSMContext, store: Storage):
             normalized.append(word.capitalize())
     async with state.proxy() as data:
         data[DATA_FULL_NAME_KEY] = ' '.join(normalized)
-    await ask_passport(message)
+    await ask_is_student(message)
+
+
+async def ask_is_student(message: Message):
+    await message.answer(
+        texts.registration.ask_is_student,
+        reply_markup=keyboards.yes_no_back_keyboard(),
+        parse_mode=ParseMode.HTML,
+    )
+    await states.Registration.input_is_student.set()
+
+
+@dp.message_handler(ChatTypeFilter(ChatType.PRIVATE), state=states.Registration.input_is_student)
+async def handle_is_student(message: Message, state: FSMContext):
+    if message.text == texts.buttons.back:
+        return await ask_full_name(message)
+    if message.text == texts.buttons.yes:
+        async with state.proxy() as data:
+            data[DATA_MGTU_KEY] = True
+            data[DATA_UNIVERSITY_KEY] = "МГТУ им. Н. Э. Баумана?"
+            data[DATA_PASSPORT_SERIES_KEY] = ""
+            data[DATA_PASSPORT_NUMBER_KEY] = ""
+        return await ask_study_group(message)
+    if message.text == texts.buttons.no:
+        async with state.proxy() as data:
+            data[DATA_MGTU_KEY] = False
+        return await ask_passport(message)
+    return await message.answer(texts.errors.invalid_input_button)
+
+
+async def ask_study_group(message: Message):
+    await message.answer(
+        texts.registration.ask_study_group,
+        reply_markup=keyboards.back_keyboard(),
+        parse_mode=ParseMode.HTML,
+    )
+    await states.Registration.input_study_group.set()
+
+
+@dp.message_handler(ChatTypeFilter(ChatType.PRIVATE), state=states.Registration.input_study_group)
+async def handle_study_group(message: Message, state: FSMContext):
+    if message.text == texts.buttons.back:
+        return await ask_is_student(message)
+    group = message.text.upper()
+    regex = re.compile(r"^((((ФМОП-)?(ИУ|ИБМ|МТ|СМ|БМТ|РЛ|Э|РК|ФН|Л|СГН|ВУЦ|УЦ|ИСОТ|РКТ|АК|ПС|РТ|ЛТ|К|ЮР|ОЭ|ТА|ТБД|ТИ|ТД|ТИП|ТКС|ТМО|ТМР|ТР|ТСА|ТСР|ТСС|ТУ|ТУС|ТЭ)[1-9]\d?)|(ЮР(.ДК)?))(К)?[ИЦ]?-(((1[0-2])|(\d))((\d)|(.\d\d+))([АМБ]?(В)?)))$")
+    if not regex.match(group):
+        return await message.answer(texts.registration.invalid_study_group)
+    async with state.proxy() as data:
+        data[DATA_STUDY_GROUP_KEY] = group
+    return await ask_workplace(message)
 
 
 async def ask_passport(message: Message):
@@ -151,6 +203,9 @@ async def ask_workplace(message: Message):
 @dp.message_handler(ChatTypeFilter(ChatType.PRIVATE), state=states.Registration.input_workplace)
 async def handle_workplace(message: Message, state: FSMContext):
     if message.text == texts.buttons.back:
+        async with state.proxy() as data:
+            if data.get(DATA_MGTU_KEY):
+                return await ask_study_group(message)
         return await ask_university(message)
     text = None if message.text == texts.buttons.skip else message.text.strip()
     async with state.proxy() as data:
@@ -160,8 +215,9 @@ async def handle_workplace(message: Message, state: FSMContext):
         number = data[DATA_PASSPORT_NUMBER_KEY]
         university = data[DATA_UNIVERSITY_KEY]
         workplace = data[DATA_WORKPLACE_KEY]
+        study_group = data.get(DATA_STUDY_GROUP_KEY)
     await message.answer(
-        texts.registration.review(full_name, series, number, university, workplace),
+        texts.registration.review(full_name, series, number, university, workplace, study_group),
         reply_markup=keyboards.yes_no_back_keyboard(),
         parse_mode=ParseMode.HTML,
     )
@@ -183,6 +239,7 @@ async def handle_confirm(message: Message, state: FSMContext, store: Storage):
                     passport_number=data[DATA_PASSPORT_NUMBER_KEY],
                     university=data[DATA_UNIVERSITY_KEY],
                     workplace=data[DATA_WORKPLACE_KEY],
+                    study_group=data.get(DATA_STUDY_GROUP_KEY),
                 )
             else:
                 await store.save_registration(
@@ -192,6 +249,7 @@ async def handle_confirm(message: Message, state: FSMContext, store: Storage):
                     passport_number=data[DATA_PASSPORT_NUMBER_KEY],
                     university=data[DATA_UNIVERSITY_KEY],
                     workplace=data[DATA_WORKPLACE_KEY],
+                    study_group=data.get(DATA_STUDY_GROUP_KEY),
                 )
         await state.finish()
         await message.answer(texts.registration.registration_finished, reply_markup=ReplyKeyboardRemove())
@@ -206,11 +264,6 @@ async def handle_confirm(message: Message, state: FSMContext, store: Storage):
 async def handle_consent(message: Message, state: FSMContext, store: Storage):
     if message.text == texts.buttons.yes:
         await store.save_consent(message.chat.id)
-        await message.answer(
-            texts.registration.intro,
-            reply_markup=ReplyKeyboardRemove(),
-            parse_mode=ParseMode.HTML,
-        )
         return await ask_full_name(message)
     if message.text == texts.buttons.no:
         return await message.answer(texts.registration.consent_required)

@@ -39,13 +39,6 @@ async def export_registrations(message: Message, store: Storage):
     await message.answer_document(input_file, caption="Список регистраций")
 
 
-@dp.message_handler(AdminFilter(), Command("clear"), state="*")
-async def clear_registrations(message: Message, store: Storage):
-    total = await store.count_registrations()
-    await store.clear_registrations()
-    await message.answer(f"Готово. Удалено записей: {total}.")
-
-
 @dp.message_handler(AdminFilter(), Command("start_rsvp"), state="*")
 async def start_rsvp(message: Message, store: Storage):
     regs = await store.list_registrations()

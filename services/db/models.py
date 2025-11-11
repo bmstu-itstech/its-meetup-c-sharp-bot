@@ -23,6 +23,7 @@ class Registration(BaseModel):
     passport_number  = Column(Text,      nullable=False)
     university       = Column(Text,      nullable=True)
     workplace        = Column(Text,      nullable=True)
+    study_group      = Column(Text,      nullable=True)
 
 
 class RegistrationRsvp(BaseModel):

@@ -28,6 +28,7 @@ class Storage:
         passport_number: str,
         university: str | None,
         workplace: str | None,
+        study_group: str | None = None,
     ) -> int:
         model = models.Registration(
             user_chat_id=user_chat_id,
@@ -36,6 +37,7 @@ class Storage:
             passport_number=passport_number,
             university=university,
             workplace=workplace,
+            study_group=study_group,
         )
         self._db.add(model)
         await self._db.commit()
@@ -65,6 +67,7 @@ class Storage:
         passport_number: str,
         university: str | None,
         workplace: str | None,
+        study_group: str | None = None,
     ) -> None:
         model = await self.get_registration(registration_id)
         model.full_name = full_name
@@ -72,6 +75,7 @@ class Storage:
         model.passport_number = passport_number
         model.university = university
         model.workplace = workplace
+        model.study_group = study_group
         await self._db.commit()
 
     async def last_registration_by_chat(self, chat_id: int) -> models.Registration | None:
