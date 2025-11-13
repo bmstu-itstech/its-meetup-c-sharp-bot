@@ -116,7 +116,7 @@ async def handle_is_student(message: Message, state: FSMContext):
     if message.text == texts.buttons.yes:
         async with state.proxy() as data:
             data[DATA_MGTU_KEY] = True
-            data[DATA_UNIVERSITY_KEY] = "МГТУ им. Н. Э. Баумана?"
+            data[DATA_UNIVERSITY_KEY] = "МГТУ им. Н. Э. Баумана"
             data[DATA_PASSPORT_SERIES_KEY] = ""
             data[DATA_PASSPORT_NUMBER_KEY] = ""
         return await ask_study_group(message)
@@ -161,7 +161,7 @@ async def ask_passport(message: Message):
 @dp.message_handler(ChatTypeFilter(ChatType.PRIVATE), state=states.Registration.input_passport)
 async def handle_passport(message: Message, state: FSMContext):
     if message.text == texts.buttons.back:
-        return await ask_full_name(message)
+        return await ask_is_student(message)
     raw = message.text.replace(" ", "")
     if not re.fullmatch(r"\d{10}", raw):
         return await message.answer(texts.registration.invalid_passport, parse_mode=ParseMode.HTML)
@@ -270,8 +270,12 @@ async def handle_consent(message: Message, state: FSMContext, store: Storage):
     return await message.answer(texts.errors.invalid_input_button)
 
 @dp.message_handler(ChatTypeFilter(ChatType.PRIVATE), state="*")
-async def handle_rsvp(message: Message, store: Storage):
+async def handle_rsvp(message: Message, state: FSMContext, store: Storage):
     # Process RSVP yes/no if user is awaiting or invited
+    # Ignore if user is inside any FSM state to avoid conflicts with Yes/No steps
+    current_state = await state.get_state()
+    if current_state:
+        return
     if message.text not in (texts.buttons.yes, texts.buttons.no):
         return
     reg = await store.last_registration_by_chat(message.chat.id)
