@@ -64,6 +64,11 @@ invited_from_waitlist = "Освободилось место! Подтверди
 edit_flow_cancelled = "Хорошо. Если захотите изменить данные — отправьте /start."
 registration_finished = "✅ Регистрация завершена! Спасибо. Примерно за неделю до мероприятия мы вышлем вам уведомление о подтверждении участия, поэтому, пожалуйста, не блокируйте бота."
 
+registration_closed_non_bmstu = "\n".join((
+    "⏰ Регистрация для участников, не обучающихся в МГТУ им. Н. Э. Баумана, закрылась 24 ноября в 20:00.",
+    "К сожалению, время уже истекло. Ждём вас на следующих мероприятиях!",
+))
+
 
 def review(full_name: str, passport_series: str, passport_number: str, university: str | None, workplace: str | None, study_group: str | None = None) -> str:
     uni = university if university else "—"

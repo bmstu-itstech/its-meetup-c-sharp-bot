@@ -162,3 +162,13 @@ class Storage:
             return
         self._db.add(models.UserConsent(chat_id=chat_id))
         await self._db.commit()
+
+    # Broadcast helpers
+    async def list_all_chat_ids(self) -> list[int]:
+        # Collect chat ids from both consents and registrations
+        result_regs = await self._db.execute(select(models.Registration.user_chat_id))
+        result_cons = await self._db.execute(select(models.UserConsent.chat_id))
+        chat_ids: set[int] = set()
+        chat_ids.update([int(x) for x in result_regs.scalars().all()])
+        chat_ids.update([int(x) for x in result_cons.scalars().all()])
+        return list(chat_ids)

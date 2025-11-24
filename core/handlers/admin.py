@@ -1,7 +1,8 @@
 import io
 import csv
 from aiogram.dispatcher.filters import Command
-from aiogram.types import Message, InputFile
+from aiogram.types import Message, InputFile, ParseMode
+import asyncio
 
 from common.repository import dp
 from services.db.storage import Storage
@@ -64,3 +65,24 @@ async def stats(message: Message, store: Storage):
     confirmed = await store.count_confirmed()
     total = await store.count_registrations()
     await message.answer(f"Статистика:\nВсего регистраций: {total}\nПодтверждено: {confirmed}/{config.capacity}")
+
+
+@dp.message_handler(AdminFilter(), Command("broadcast"), state="*")
+async def broadcast(message: Message, store: Storage):
+    text = message.get_args().strip()
+    if not text:
+        return await message.answer("Использование: /broadcast текст сообщения")
+    chat_ids = await store.list_all_chat_ids()
+    if not chat_ids:
+        return await message.answer("Нет пользователей для рассылки.")
+    sent = 0
+    failed = 0
+    for idx, chat_id in enumerate(chat_ids, start=1):
+        try:
+            await message.bot.send_message(chat_id, text, parse_mode=ParseMode.HTML)
+            sent += 1
+        except Exception:
+            failed += 1
+        if idx % 25 == 0:
+            await asyncio.sleep(0.05)
+    await message.answer(f"Рассылка завершена. Отправлено: {sent}, ошибок: {failed}.")
