@@ -3,6 +3,7 @@ import csv
 from aiogram.dispatcher.filters import Command
 from aiogram.types import Message, InputFile, ParseMode
 import asyncio
+import os
 
 from common.repository import dp
 from services.db.storage import Storage
@@ -86,3 +87,58 @@ async def broadcast(message: Message, store: Storage):
         if idx % 25 == 0:
             await asyncio.sleep(0.05)
     await message.answer(f"Рассылка завершена. Отправлено: {sent}, ошибок: {failed}.")
+
+
+INSTRUCTION_TEXT = "\n".join((
+    "Митап стартует уже через 2 часа: показываем, как добраться до места встречи, 345 аудитории Главного здания МГТУ",
+    "",
+    "Открывай видео, бери с собой отличное настроение, заряд концентрации и приготовься к насыщенному вечеру!",
+    "",
+    "Не забудь взять паспорт, если не являешься студентом МГТУ им. Н. Э. Баумана. Это нужно для входа на территорию Университета."
+))
+
+
+@dp.message_handler(AdminFilter(), Command("send_instruction"), state="*")
+async def send_instruction(message: Message, store: Storage):
+    # Resolve assets/instruction.MOV and optional preview file from project root
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    video_path = os.path.join(project_root, "assets", "instruction.MOV")
+    preview_path = os.path.join(project_root, "assets", "preview.jpg")
+    if not os.path.exists(video_path):
+        return await message.answer("Файл видео не найден. Поместите его в assets/instruction.MOV и повторите попытку.")
+    chat_ids = await store.list_all_chat_ids()
+    if not chat_ids:
+        return await message.answer("Нет пользователей для рассылки.")
+    await message.answer(f"Начинаю рассылку инструкции. Получателей: {len(chat_ids)}")
+    try:
+        kwargs = {
+            "video": InputFile(video_path),
+            "caption": INSTRUCTION_TEXT,
+            "parse_mode": ParseMode.HTML,
+        }
+        if preview_path and os.path.exists(preview_path):
+            kwargs["thumb"] = InputFile(preview_path)
+        preview_msg = await message.bot.send_video(message.chat.id, **kwargs)
+        file_id = preview_msg.video.file_id if getattr(preview_msg, "video", None) else None
+        if not file_id:
+            return await message.answer("Не удалось получить file_id видео. Проверьте файл и повторите попытку.")
+    except Exception as e:
+        return await message.answer(f"Ошибка загрузки видео: {e}")
+    sent = 0
+    failed = 0
+    for idx, chat_id in enumerate(chat_ids, start=1):
+        try:
+            send_kwargs = {
+                "video": file_id,
+                "caption": INSTRUCTION_TEXT,
+                "parse_mode": ParseMode.HTML,
+            }
+            if preview_path and os.path.exists(preview_path):
+                send_kwargs["thumb"] = InputFile(preview_path)
+            await message.bot.send_video(chat_id, **send_kwargs)
+            sent += 1
+        except Exception:
+            failed += 1
+        if idx % 20 == 0:
+            await asyncio.sleep(0.1)
+    await message.answer(f"Рассылка инструкции завершена. Отправлено: {sent}, ошибок: {failed}.")
