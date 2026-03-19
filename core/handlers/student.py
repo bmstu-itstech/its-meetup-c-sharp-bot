@@ -116,14 +116,14 @@ async def handle_is_student(message: Message, state: FSMContext):
     if message.text == texts.buttons.yes:
         async with state.proxy() as data:
             data[DATA_MGTU_KEY] = True
-            data[DATA_UNIVERSITY_KEY] = "МГТУ им. Н. Э. Баумана"
+            data[DATA_UNIVERSITY_KEY] = "МГТУ им. Н.Э. Баумана"
             data[DATA_PASSPORT_SERIES_KEY] = ""
             data[DATA_PASSPORT_NUMBER_KEY] = ""
         return await ask_study_group(message)
     if message.text == texts.buttons.no:
         now = datetime.now()
-        # Registration for non-BMSTU participants closes on November 24 at 20:00 (current year)
-        deadline = datetime(year=now.year, month=11, day=24, hour=20, minute=0, second=0, microsecond=0)
+        # Registration for non-BMSTU participants closes on March 23 at 23:59 (current year)
+        deadline = datetime(year=now.year, month=3, day=23, hour=23, minute=59, second=59, microsecond=0)
         if now >= deadline:
             await state.finish()
             return await message.answer(texts.registration.registration_closed_non_bmstu, parse_mode=ParseMode.HTML)

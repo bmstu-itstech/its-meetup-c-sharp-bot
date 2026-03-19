@@ -18,12 +18,12 @@ class Registration(BaseModel):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
 
     user_chat_id     = Column(BigInteger, nullable=False)
-    full_name        = Column(Text,      nullable=False)
-    passport_series  = Column(Text,      nullable=False)
-    passport_number  = Column(Text,      nullable=False)
-    university       = Column(Text,      nullable=True)
-    workplace        = Column(Text,      nullable=True)
-    study_group      = Column(Text,      nullable=True)
+    full_name        = Column(Text,       nullable=False)
+    passport_series  = Column(Text,       nullable=False)
+    passport_number  = Column(Text,       nullable=False)
+    university       = Column(Text,       nullable=True)
+    workplace        = Column(Text,       nullable=True)
+    study_group      = Column(Text,       nullable=True)
 
 
 class RegistrationRsvp(BaseModel):
