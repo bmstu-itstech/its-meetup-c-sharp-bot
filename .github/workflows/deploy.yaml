@@ -15,15 +15,28 @@ jobs:
     steps:
       - name: Deploy
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          ADMIN_IDS: ${{ vars.ADMIN_IDS }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_EXTERNAL_PORT: ${{ secrets.POSTGRES_EXTERNAL_PORT }}
+          PROXY_PROTOCOL: ${{ secrets.PROXY_PROTOCOL }}
+          PROXY_LOGIN: ${{ secrets.PROXY_LOGIN }}
+          PROXY_PASSWORD: ${{ secrets.PROXY_PASSWORD }}
+          PROXY_IP: ${{ secrets.PROXY_IP }}
+          PROXY_PORT: ${{ secrets.PROXY_PORT }}
         with:
           host: ${{ vars.SSH_HOST }}
           port: ${{ vars.SSH_PORT }}
           username: ${{ vars.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script_stop: true
+          envs: ADMIN_IDS, TELEGRAM_BOT_TOKEN, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_EXTERNAL_PORT, PROXY_PROTOCOL, PROXY_LOGIN, PROXY_PASSWORD, PROXY_IP, PROXY_PORT
           script: |
             cd ${{ vars.PROJECT_DIR }}
             git stash
             git checkout main
             git pull origin main
-            docker compose --env-file=.env up --build -d
+            docker compose up --build -d
