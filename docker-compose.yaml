@@ -5,10 +5,15 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
-    env_file:
-      - .env
     environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      ADMIN_IDS: ${ADMIN_IDS:-}
       DATABASE_URI: "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      PROXY_PROTOCOL: ${PROXY_PROTOCOL:-}
+      PROXY_LOGIN: ${PROXY_LOGIN:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+      PROXY_IP: ${PROXY_IP:-}
+      PROXY_PORT: ${PROXY_PORT:-}
     networks:
       - host
     depends_on:
