@@ -56,5 +56,5 @@ config = Config(
     proxy_login=env_notrequired("PROXY_LOGIN"),
     proxy_password=env_notrequired("PROXY_PASSWORD"),
     proxy_ip=env_notrequired("PROXY_IP"),
-    proxy_port=env_notrequired("PROXY_PORT"),
+    proxy_port=int(env_notrequired("PROXY_PORT")) if env_notrequired("PROXY_PORT") else None,
 )
