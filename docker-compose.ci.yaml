@@ -1,0 +1,13 @@
+services:
+  bot:
+    container_name: its-meetup-c-sharp-bot
+    build: .
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      ADMIN_IDS: ${ADMIN_IDS:-}
+      DATABASE_URI: ${DATABASE_URI}
+      PROXY_PROTOCOL: ${PROXY_PROTOCOL:-}
+      PROXY_LOGIN: ${PROXY_LOGIN:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+      PROXY_IP: ${PROXY_IP:-}
+      PROXY_PORT: ${PROXY_PORT:-}
